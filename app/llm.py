@@ -6,8 +6,8 @@ class ChatLLM:
     def __init__(self):
         self.use_openai = bool(os.getenv("OPENAI_API_KEY"))
         if self.use_openai:
-            from openai import OpenAI
-            self.client = OpenAI()
+            import openai
+            openai.api_key = os.getenv("OPENAI_API_KEY")
             # Choose a capable, cost-effective model
             self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         else:
@@ -19,7 +19,8 @@ class ChatLLM:
             raise RuntimeError("No LLM configured. Set OPENAI_API_KEY in .env to enable responses.")
         # Convert to OpenAI format
         full = [{"role":"system","content":system}] + messages
-        resp = self.client.chat.completions.create(
+        import openai
+        resp = openai.ChatCompletion.create(
             model=self.model,
             messages=full,
             temperature=temperature
