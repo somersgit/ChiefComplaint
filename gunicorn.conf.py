@@ -1,5 +1,8 @@
 # Gunicorn configuration file
-bind = "0.0.0.0:10000"
+import os
+
+# Use PORT environment variable from Render, fallback to 10000
+bind = f"0.0.0.0:{os.environ.get('PORT', '10000')}"
 workers = 2
 worker_class = "sync"
 worker_connections = 1000
