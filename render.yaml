@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: patient-resident-attending-chatbot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app.app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: CHROMA_DIR
+        value: .chroma_db
+      - key: CASE_HISTORY_PDF
+        value: ./data/case_history.pdf
+      - key: CASE_EXAM_PDF
+        value: ./data/case_exam.pdf
+      - key: ASSIGNED_DIAGNOSIS
+        value: Pneumonia
