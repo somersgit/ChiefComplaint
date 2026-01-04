@@ -55,7 +55,10 @@ class RAGService:
         for i, d in enumerate(docs):
             ids.append(f"{fid}:{i}")
             texts.append(d.page_content)
-            metas.append({"source": source_path, "ns": self.ns, "page": d.metadata.get("page", None)})
+            page = d.metadata.get("page")
+            if page is None:
+                page = 0
+            metas.append({"source": source_path, "ns": self.ns, "page": page})
 
         # Clean older versions of same PDF namespace
         # (Optional: in production, track versions; here we let embeddings accumulate as files change)
