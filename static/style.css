@@ -14,8 +14,10 @@ body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-san
 header { display: flex; align-items: baseline; gap: 12px; }
 h1 { margin: 0; font-size: 1.6rem; }
 .tagline { color: var(--muted); margin: 0; }
-#controls { background: var(--card); border-radius: 16px; padding: 12px 16px; margin: 16px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#controls { background: var(--card); border-radius: 16px; padding: 12px 16px; margin: 16px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .stage { font-weight: 600; }
+.case-switcher { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.case-switcher select { border-radius: 999px; border: 1px solid #2c365c; background: #cbd1e9; padding: 8px 12px; }
 .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 button { background: var(--accent); color: var(--text); border: 0; border-radius: 999px; padding: 10px 14px; font-weight: 700; cursor: pointer; }
 button.secondary { background: transparent; outline: 1px solid var(--muted); color: var(--muted); }
@@ -31,3 +33,13 @@ form { display: flex; gap: 8px; padding: 8px; }
 input[type=text] { flex: 1; border-radius: 999px; border: 1px solid #2c365c; background: #cbd1e9; padding: 12px 14px; color: var(--text); }
 input::placeholder { color: #6c78a8; }
 footer { color: var(--muted); text-align: center; margin-top: 10px; }
+
+#case-form { background: var(--card); border-radius: 16px; padding: 16px; margin-top: 16px; }
+#case-form.hidden { display: none; }
+#case-form form { display: grid; gap: 12px; }
+#case-form label { display: grid; gap: 6px; font-weight: 600; }
+#case-form textarea,
+#case-form input[type=text] { border-radius: 12px; border: 1px solid #2c365c; background: #cbd1e9; padding: 10px 12px; color: var(--text); }
+.form-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+#case-downloads.hidden { display: none; }
+#case-downloads ul { margin: 8px 0 0; padding-left: 18px; }
