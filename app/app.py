@@ -1,5 +1,7 @@
 import os
 import uuid
+import json
+from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory, render_template
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -7,6 +9,7 @@ load_dotenv()
 from app.rag import RAGService
 from app.sources import EvidenceFinder
 from app.llm import ChatLLM
+from fpdf import FPDF
 
 
 app = Flask(__name__, static_folder='../static', template_folder='../templates')
@@ -20,15 +23,91 @@ chroma_dir = os.getenv("CHROMA_DIR", ".chroma_db")
 history_pdf = os.getenv("CASE_HISTORY_PDF", "./data/case_history.pdf")
 exam_pdf = os.getenv("CASE_EXAM_PDF", "./data/case_exam.pdf")
 assigned_dx = os.getenv("ASSIGNED_DIAGNOSIS", "Pneumonia")
+cases_path = os.getenv("CASES_PATH", "./data/cases.json")
+cases_dir = Path(os.getenv("CASES_DIR", "./data/cases"))
 
-rag_history = RAGService(chroma_dir=chroma_dir, namespace="history")
-rag_exam = RAGService(chroma_dir=chroma_dir, namespace="exam")
+RAG_SERVICES = {}
+CASES = {}
 llm = ChatLLM()
 sources = EvidenceFinder()
 
-# Build indices if needed
-rag_history.ensure_index(history_pdf)
-rag_exam.ensure_index(exam_pdf)
+def _write_pdf(text: str, output_path: Path) -> None:
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    for line in (text or "").splitlines():
+        pdf.multi_cell(0, 8, line)
+    pdf.output(str(output_path))
+
+def _normalize_case_path(path_value: str) -> str:
+    if not path_value:
+        return ""
+    return str(Path(path_value).resolve())
+
+def _load_cases() -> None:
+    cases_dir.mkdir(parents=True, exist_ok=True)
+    CASES.clear()
+    CASES["default"] = {
+        "id": "default",
+        "title": "Default case",
+        "history_path": _normalize_case_path(history_pdf),
+        "exam_path": _normalize_case_path(exam_pdf),
+        "assigned_dx": assigned_dx
+    }
+    if not os.path.exists(cases_path):
+        return
+    try:
+        with open(cases_path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except json.JSONDecodeError:
+        return
+    for item in data:
+        case_id = item.get("id")
+        if not case_id or case_id == "default":
+            continue
+        CASES[case_id] = {
+            "id": case_id,
+            "title": item.get("title", f"Case {case_id}"),
+            "history_path": _normalize_case_path(item.get("history_path")),
+            "exam_path": _normalize_case_path(item.get("exam_path")),
+            "assigned_dx": item.get("assigned_dx", "Not provided")
+        }
+
+def _save_cases() -> None:
+    payload = []
+    for case_id, case in CASES.items():
+        if case_id == "default":
+            continue
+        payload.append({
+            "id": case_id,
+            "title": case.get("title"),
+            "history_path": case.get("history_path"),
+            "exam_path": case.get("exam_path"),
+            "assigned_dx": case.get("assigned_dx", "Not provided")
+        })
+    with open(cases_path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+
+def _get_case(case_id: str):
+    return CASES.get(case_id) or CASES.get("default")
+
+def _get_rag(case_id: str, namespace: str) -> RAGService:
+    key = f"{case_id}:{namespace}"
+    if key not in RAG_SERVICES:
+        service = RAGService(chroma_dir=chroma_dir, namespace=f"{case_id}_{namespace}")
+        case = _get_case(case_id)
+        if namespace == "history":
+            service.ensure_index(case.get("history_path"))
+        else:
+            service.ensure_index(case.get("exam_path"))
+        RAG_SERVICES[key] = service
+    return RAG_SERVICES[key]
+
+_load_cases()
+# Build indices if needed for default case
+_get_rag("default", "history")
+_get_rag("default", "exam")
 
 PATIENT_SYSTEM = (
     "You are a *standardized patient* in a simulation. Answer ONLY using the provided case context and keep answers concise, short (1 sentence max) and realistic."
@@ -83,22 +162,28 @@ ATTENDING_SUMMARY_SYSTEM = (
     "Cite trusted sources in brackets only if/when you reference them."
 )
 
-def _get_or_create_session(session_id=None):
+def _get_or_create_session(session_id=None, case_id=None):
     if not session_id:
         session_id = str(uuid.uuid4())
+    normalized_case_id = case_id if case_id in CASES else "default"
     if session_id not in SESSIONS:
         SESSIONS[session_id] = {
             "stage": "HISTORY",
             "chat": [],   # list of {role, content}
             "hx_summary": "",
-            "dx_candidate": ""
+            "dx_candidate": "",
+            "case_id": normalized_case_id
         }
+    elif case_id:
+        SESSIONS[session_id]["case_id"] = normalized_case_id
     return session_id, SESSIONS[session_id]
 
 @app.post('/api/session/start')
 def start_session():
-    session_id, data = _get_or_create_session()
-    return jsonify({"session_id": session_id})
+    payload = request.get_json(force=True) or {}
+    case_id = payload.get("case_id") or "default"
+    session_id, data = _get_or_create_session(case_id=case_id)
+    return jsonify({"session_id": session_id, "case_id": data.get("case_id", "default")})
 
 @app.post('/api/session/reset')
 def reset_session():
@@ -109,10 +194,10 @@ def reset_session():
 @app.post('/api/patient/chat')
 def patient_chat():
     payload = request.get_json(force=True)
-    session_id, data = _get_or_create_session(payload.get("session_id"))
+    session_id, data = _get_or_create_session(payload.get("session_id"), payload.get("case_id"))
     user_msg = payload.get("message","")
     # Retrieve context from history RAG
-    context = rag_history.search(user_msg, k=4)
+    context = _get_rag(data.get("case_id", "default"), "history").search(user_msg, k=4)
     sys = PATIENT_SYSTEM + f"\n\nCASE CONTEXT (history):\n{context}"
     reply = llm.chat(system=sys, messages=data["chat"] + [{"role":"user","content":user_msg}], temperature=0.4)
     data["chat"].append({"role":"user","content":user_msg})
@@ -123,7 +208,7 @@ def patient_chat():
 @app.post('/api/attending/open')
 def attending_open():
     payload = request.get_json(force=True)
-    session_id, data = _get_or_create_session(payload.get("session_id"))
+    session_id, data = _get_or_create_session(payload.get("session_id"), payload.get("case_id"))
     data["stage"] = "HX_DISCUSS"
     prompt = ("I'm here. In one minute, summarize the key positives/negatives from history "
               "and tell me your top 2–3 diagnoses with rationale.")
@@ -132,7 +217,7 @@ def attending_open():
 @app.post('/api/attending/history_discuss')
 def attending_history_discuss():
     payload = request.get_json(force=True)
-    session_id, data = _get_or_create_session(payload.get("session_id"))
+    session_id, data = _get_or_create_session(payload.get("session_id"), payload.get("case_id"))
     user_msg = payload.get("message","")
     # Use both chat so far + a history-focused coaching response
     sys = ATTENDING_SYSTEM + "\nYou are discussing the resident's initial differential based on HISTORY only."
@@ -144,7 +229,7 @@ def attending_history_discuss():
 @app.post('/api/attending/exam_intro')
 def attending_exam_intro():
     payload = request.get_json(force=True)
-    session_id, data = _get_or_create_session(payload.get("session_id"))
+    session_id, data = _get_or_create_session(payload.get("session_id"), payload.get("case_id"))
     data["stage"] = "EXAM"
     intro = ("Let's focus on the physical exam. Ask me targeted questions. "
              "I will answer using the exam context for this case.")
@@ -153,9 +238,9 @@ def attending_exam_intro():
 @app.post('/api/attending/exam_chat')
 def attending_exam_chat():
     payload = request.get_json(force=True)
-    session_id, data = _get_or_create_session(payload.get("session_id"))
+    session_id, data = _get_or_create_session(payload.get("session_id"), payload.get("case_id"))
     user_msg = payload.get("message","")
-    context = rag_exam.search(user_msg, k=4)
+    context = _get_rag(data.get("case_id", "default"), "exam").search(user_msg, k=4)
     sys = ATTENDING_SYSTEM + f"\n\nCASE CONTEXT (exam):\n{context}"
     reply = llm.chat(system=sys, messages=data["chat"] + [{"role":"user","content":user_msg}], temperature=0.35)
     data["chat"].append({"role":"user","content":user_msg})
@@ -165,14 +250,14 @@ def attending_exam_chat():
 @app.post('/api/attending/final_prompt')
 def attending_final_prompt():
     payload = request.get_json(force=True)
-    session_id, data = _get_or_create_session(payload.get("session_id"))
+    session_id, data = _get_or_create_session(payload.get("session_id"), payload.get("case_id"))
     data["stage"] = "DX_DISCUSS"
     return jsonify({"session_id": session_id, "reply": "What's your leading diagnosis and 2–3 alternatives? Brief justification for each.", "role": "attending"})
 
 @app.post('/api/attending/final_collect')
 def attending_final_collect():
     payload = request.get_json(force=True)
-    session_id, data = _get_or_create_session(payload.get("session_id"))
+    session_id, data = _get_or_create_session(payload.get("session_id"), payload.get("case_id"))
     user_msg = payload.get("message","")
     data["dx_candidate"] = user_msg
 
@@ -184,7 +269,8 @@ def attending_final_collect():
     )
 
     # Evidence finder: fetch 3–6 references (PubMed first)
-    dx = os.getenv("ASSIGNED_DIAGNOSIS", "Pneumonia")
+    case = _get_case(data.get("case_id", "default"))
+    dx = case.get("assigned_dx", "Not provided")
     evidence = sources.find_evidence(dx, recap, max_items=5)
 
     # Final compare
@@ -210,8 +296,10 @@ def attending_final_collect():
 @app.post('/api/attending/start_treatment')
 def attending_start_treatment():
     payload = request.get_json() or {}
+    case_id = payload.get("case_id") or "default"
     session_id = payload.get("session_id") or str(uuid.uuid4())
-    data = SESSIONS.setdefault(session_id, {"chat": [], "stage": "HISTORY"})
+    data = SESSIONS.setdefault(session_id, {"chat": [], "stage": "HISTORY", "case_id": case_id})
+    data["case_id"] = case_id
 
     msg = llm.chat(
         system=ATTENDING_TREATMENT_KICKOFF,
@@ -227,8 +315,10 @@ def attending_start_treatment():
 @app.post('/api/attending/treatment_assess')
 def attending_treatment_assess():
     payload = request.get_json() or {}
+    case_id = payload.get("case_id") or "default"
     session_id = payload.get("session_id") or str(uuid.uuid4())
-    data = SESSIONS.setdefault(session_id, {"chat": [], "stage": "HISTORY"})
+    data = SESSIONS.setdefault(session_id, {"chat": [], "stage": "HISTORY", "case_id": case_id})
+    data["case_id"] = case_id
 
     plan = payload.get("message", "").strip()
     data["chat"].append({"role": "user", "content": plan})
@@ -261,7 +351,7 @@ def attending_treatment_assess():
 @app.post('/api/attending/final_followups')
 def attending_final_followups():
     payload = request.get_json(force=True)
-    session_id, data = _get_or_create_session(payload.get("session_id"))
+    session_id, data = _get_or_create_session(payload.get("session_id"), payload.get("case_id"))
     user_msg = payload.get("message","")
     sys = ATTENDING_SYSTEM + " You are now answering follow-up teaching questions after the final assessment."
     reply = llm.chat(system=sys, messages=data["chat"] + [{"role":"user","content":user_msg}], temperature=0.3)
@@ -274,12 +364,77 @@ def attending_final_followups():
 @app.post('/api/attending/finalize_encounter')
 def attending_finalize_encounter():
     payload = request.get_json() or {}
+    case_id = payload.get("case_id") or "default"
     session_id = payload.get("session_id") or str(uuid.uuid4())
-    data = SESSIONS.setdefault(session_id, {"chat": [], "stage": "HISTORY"})
+    data = SESSIONS.setdefault(session_id, {"chat": [], "stage": "HISTORY", "case_id": case_id})
+    data["case_id"] = case_id
 
     summary = llm.chat(system=ATTENDING_SUMMARY_SYSTEM, messages=data["chat"], temperature=0.2)
     data["chat"].append({"role": "assistant", "content": summary, "speaker": "attending"})
     return jsonify({"session_id": session_id, "reply": summary, "role": "attending"})
+
+@app.post('/api/cases/list')
+def list_cases():
+    payload = []
+    for case_id, case in CASES.items():
+        payload.append({
+            "id": case_id,
+            "title": case.get("title", case_id)
+        })
+    return jsonify({"cases": payload})
+
+@app.post('/api/cases/create')
+def create_case():
+    payload = request.get_json(force=True) or {}
+    title = (payload.get("title") or "Custom case").strip()
+    history_text = payload.get("history_text", "")
+    exam_text = payload.get("exam_text", "")
+    assigned_diagnosis = (payload.get("assigned_diagnosis") or "Not provided").strip()
+    case_id = str(uuid.uuid4())
+    case_path = cases_dir / case_id
+    case_path.mkdir(parents=True, exist_ok=True)
+
+    history_txt_path = case_path / "history.txt"
+    exam_txt_path = case_path / "exam.txt"
+    history_pdf_path = case_path / "history.pdf"
+    exam_pdf_path = case_path / "exam.pdf"
+
+    history_txt_path.write_text(history_text, encoding="utf-8")
+    exam_txt_path.write_text(exam_text, encoding="utf-8")
+    _write_pdf(history_text, history_pdf_path)
+    _write_pdf(exam_text, exam_pdf_path)
+
+    CASES[case_id] = {
+        "id": case_id,
+        "title": title,
+        "history_path": str(history_txt_path.resolve()),
+        "exam_path": str(exam_txt_path.resolve()),
+        "assigned_dx": assigned_diagnosis
+    }
+    _save_cases()
+    _get_rag(case_id, "history")
+    _get_rag(case_id, "exam")
+
+    return jsonify({
+        "case": {"id": case_id, "title": title},
+        "downloads": {
+            "history_txt": f"/api/cases/{case_id}/history.txt",
+            "exam_txt": f"/api/cases/{case_id}/exam.txt",
+            "history_pdf": f"/api/cases/{case_id}/history.pdf",
+            "exam_pdf": f"/api/cases/{case_id}/exam.pdf"
+        }
+    })
+
+@app.get('/api/cases/<case_id>/<filename>')
+def download_case_file(case_id, filename):
+    case = _get_case(case_id)
+    if not case or case.get("id") == "default":
+        return jsonify({"error": "Case not found"}), 404
+    case_path = cases_dir / case_id
+    file_path = case_path / filename
+    if not file_path.exists():
+        return jsonify({"error": "File not found"}), 404
+    return send_from_directory(case_path, filename, as_attachment=True)
 #------------------------
 # Static hosting for the single-page UI
 @app.get('/')
