@@ -36,8 +36,7 @@ def _write_pdf(text: str, output_path: Path) -> None:
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     pdf.set_font("Arial", size=12)
-    safe_text = (text or "").encode("latin-1", "replace").decode("latin-1")
-    for line in safe_text.splitlines():
+    for line in (text or "").splitlines():
         pdf.multi_cell(0, 8, line)
     pdf.output(str(output_path))
 
