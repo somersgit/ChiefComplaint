@@ -1,7 +1,7 @@
 const chatLog = document.getElementById('chat-log');
 const form = document.getElementById('chat-form');
 const input = document.getElementById('user-input');
-const stageLabel = document.getElementById('stage-label');
+const btnHistory = document.getElementById('btn-history');
 const btnFinishHistory = document.getElementById('btn-finish-history');
 const btnStartExam = document.getElementById('btn-start-exam');
 const btnFinalize = document.getElementById('btn-finalize');
@@ -41,12 +41,21 @@ async function api(path, payload={}) {
 
 function setStage(stage) {
   state.stage = stage;
-  let label = 'History (Patient)';
-  if (stage === stages.HX_DISCUSS) label = 'Attending: Discuss history & differential';
-  if (stage === stages.EXAM) label = 'Attending: Physical exam Q&A';
-  if (stage === stages.DX_DISCUSS) label = 'Attending: Final diagnosis discussion';
-  if (stage === stages.FINAL) label = 'Final assessment';
-  stageLabel.textContent = label;
+
+  const stageButtonMap = {
+    [stages.HISTORY]: btnHistory,
+    [stages.HX_DISCUSS]: btnFinishHistory,
+    [stages.EXAM]: btnStartExam,
+    [stages.DX_DISCUSS]: btnFinalize,
+    [stages.TREATMENT]: btnStartTx,
+    [stages.FINAL]: btnFinalizeEncounter
+  };
+
+  [btnHistory, btnFinishHistory, btnStartExam, btnFinalize, btnStartTx, btnFinalizeEncounter]
+    .forEach((button) => button.classList.remove('active-stage'));
+
+  const activeButton = stageButtonMap[stage];
+  if (activeButton) activeButton.classList.add('active-stage');
 }
 
 // Initialize session
