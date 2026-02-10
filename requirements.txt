@@ -10,7 +10,6 @@ langchain-community==0.2.11
 langchain-text-splitters==0.2.2
 # OpenAI package - using compatible version
 openai==0.28.1
-fpdf==1.7.2
 
 # Web retrieval (PubMed + parsing)
 biopython>=1.85
