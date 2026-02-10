@@ -7,6 +7,7 @@ const btnFinalize = document.getElementById('btn-finalize');
 const btnReset = document.getElementById('btn-reset');
 const btnStartTx = document.getElementById('btn-start-tx');
 const btnFinalizeEncounter = document.getElementById('btn-finalize-encounter');
+const stageHistory = document.getElementById('stage-history');
 
 const stages = {
   HISTORY: 'HISTORY',
@@ -42,7 +43,7 @@ function setStage(stage) {
   state.stage = stage;
 
   const stageButtonMap = {
-    [stages.HISTORY]: btnFinishHistory,
+    [stages.HISTORY]: stageHistory,
     [stages.HX_DISCUSS]: btnStartExam,
     [stages.EXAM]: btnFinalize,
     [stages.DX_DISCUSS]: btnStartTx,
@@ -50,8 +51,8 @@ function setStage(stage) {
     [stages.TREATMENT]: btnFinalizeEncounter
   };
 
-  [btnFinishHistory, btnStartExam, btnFinalize, btnStartTx, btnFinalizeEncounter]
-    .forEach((button) => button.classList.remove('active-stage'));
+  [stageHistory, btnFinishHistory, btnStartExam, btnFinalize, btnStartTx, btnFinalizeEncounter]
+    .forEach((control) => control.classList.remove('active-stage'));
 
   const activeButton = stageButtonMap[stage];
   if (activeButton) activeButton.classList.add('active-stage');
