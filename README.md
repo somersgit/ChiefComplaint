@@ -38,3 +38,35 @@ flask --app app/app.py --debug run
 - **Roles**: Two distinct system prompts—*Patient* (history) and *Attending* (exam/discussion).
 - **Trusted sources**: For the final explanation we query PubMed via NCBI Entrez and optionally surface NIH/CDC/WHO/Mayo/JH pages.
 - **Privacy**: All PDFs stay local; external queries are limited to literature/citations. You may disable external lookups in `.env`.
+
+## Multiple cases (dropdown selector)
+
+The app now supports multiple selectable cases via a UI dropdown and a backend case registry.
+
+Create `data/cases.json` with one entry per case:
+
+```json
+{
+  "cases": {
+    "essential_tremor": {
+      "label": "Essential Tremor",
+      "history_pdf": "./data/case_history.pdf",
+      "exam_pdf": "./data/case_exam.pdf",
+      "assigned_diagnosis": "Essential Tremor"
+    },
+    "parkinsons": {
+      "label": "Parkinson Disease",
+      "history_pdf": "./data/parkinsons_history.pdf",
+      "exam_pdf": "./data/parkinsons_exam.pdf",
+      "assigned_diagnosis": "Parkinson Disease"
+    }
+  }
+}
+```
+
+Notes:
+- Each case needs separate history/exam PDFs.
+- The frontend calls `GET /api/cases` to populate the dropdown.
+- Starting or switching a case creates a fresh session scoped to that case.
+- RAG indexes are built lazily per case/phase when first used.
+
