@@ -5,6 +5,12 @@
       "history_pdf": "./data/case_history.pdf",
       "exam_pdf": "./data/case_exam.pdf",
       "assigned_diagnosis": "Essential Tremor"
+    },
+    "AIN": {
+      "label": "Acute Interstitial Nephritis",
+      "history_pdf": "./data/AIN_history.pdf",
+      "exam_pdf": "./data/AIN_exam.pdf",
+      "assigned_diagnosis": "Acute Interstitial Nephritis"
     }
   }
 }
