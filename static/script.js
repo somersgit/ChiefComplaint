@@ -1,7 +1,7 @@
 const chatLog = document.getElementById('chat-log');
 const form = document.getElementById('chat-form');
 const input = document.getElementById('user-input');
-const btnHistory = document.getElementById('btn-history'); // optional: may not exist on older branch
+const btnHistory = document.getElementById('btn-history');
 const btnFinishHistory = document.getElementById('btn-finish-history');
 const btnStartExam = document.getElementById('btn-start-exam');
 const btnFinalize = document.getElementById('btn-finalize');
@@ -43,8 +43,7 @@ function setStage(stage) {
   state.stage = stage;
 
   const stageButtonMap = {
-    // Fallback keeps this working even if a merge picks an older HTML structure without #btn-history.
-    [stages.HISTORY]: btnHistory || btnFinishHistory,
+    [stages.HISTORY]: btnHistory,
     [stages.HX_DISCUSS]: btnFinishHistory,
     [stages.EXAM]: btnStartExam,
     [stages.DX_DISCUSS]: btnFinalize,
@@ -53,7 +52,6 @@ function setStage(stage) {
   };
 
   [btnHistory, btnFinishHistory, btnStartExam, btnFinalize, btnStartTx, btnFinalizeEncounter]
-    .filter(Boolean)
     .forEach((button) => button.classList.remove('active-stage'));
 
   const activeButton = stageButtonMap[stage];
