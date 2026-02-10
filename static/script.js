@@ -44,11 +44,11 @@ function setStage(stage) {
 
   const stageButtonMap = {
     [stages.HISTORY]: stageHistory,
-    [stages.HX_DISCUSS]: btnStartExam,
-    [stages.EXAM]: btnFinalize,
-    [stages.DX_DISCUSS]: btnStartTx,
-    [stages.FINAL]: btnFinalizeEncounter,
-    [stages.TREATMENT]: btnFinalizeEncounter
+    [stages.HX_DISCUSS]: btnFinishHistory,
+    [stages.EXAM]: btnStartExam,
+    [stages.DX_DISCUSS]: btnFinalize,
+    [stages.TREATMENT]: btnStartTx,
+    [stages.FINAL]: btnFinalizeEncounter
   };
 
   [stageHistory, btnFinishHistory, btnStartExam, btnFinalize, btnStartTx, btnFinalizeEncounter]
