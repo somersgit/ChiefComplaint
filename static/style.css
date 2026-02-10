@@ -18,8 +18,8 @@ h1 { margin: 0; font-size: 1.6rem; }
 .stage { font-weight: 600; }
 .buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 button { background: var(--accent); color: var(--text); border: 0; border-radius: 999px; padding: 10px 14px; font-weight: 700; cursor: pointer; transition: background-color 0.2s ease; }
-button.active-stage { background: #86efac; }
-button.stage-step { cursor: default; }
+button.active-stage, .active-stage { background: #86efac; }
+button.stage-step, .stage-step { cursor: default; }
 button.secondary { background: transparent; outline: 1px solid var(--muted); color: var(--muted); }
 button[disabled] { opacity: .5; cursor: not-allowed; }
 main { background: var(--card); border-radius: 16px; padding: 12px; }
