@@ -18,11 +18,6 @@
         <label>Stage:</label>
         <span id="stage-label">History (Patient)</span>
       </div>
-      <div class="case-switcher">
-        <label for="case-select">Case:</label>
-        <select id="case-select"></select>
-        <button id="btn-new-case" class="secondary" type="button">New Case</button>
-      </div>
       <div class="buttons">
         <button id="btn-finish-history" title="Tell the attending you're ready to discuss.">Page Attending</button>
         <button id="btn-start-exam" disabled title="Move to asking about physical exam findings.">Start Physical Exam</button>
@@ -40,41 +35,6 @@
         <button type="submit">Send</button>
       </form>
     </main>
-
-    <section id="case-form" class="hidden">
-      <h2>Create a new case</h2>
-      <form id="new-case-form">
-        <label>
-          Case title
-          <input type="text" id="case-title" placeholder="Case 2: ..." required />
-        </label>
-        <label>
-          Case history
-          <textarea id="case-history" rows="6" placeholder="Paste or type the case history..." required></textarea>
-        </label>
-        <label>
-          Case exam
-          <textarea id="case-exam" rows="6" placeholder="Paste or type the case exam..." required></textarea>
-        </label>
-        <label>
-          Assigned diagnosis (optional)
-          <input type="text" id="case-dx" placeholder="Optional correct diagnosis" />
-        </label>
-        <div class="form-actions">
-          <button type="submit">Save Case</button>
-          <button type="button" id="btn-cancel-case" class="secondary">Cancel</button>
-        </div>
-      </form>
-      <div id="case-downloads" class="hidden">
-        <p>Downloads:</p>
-        <ul>
-          <li><a id="download-history-txt" href="#">History (txt)</a></li>
-          <li><a id="download-exam-txt" href="#">Exam (txt)</a></li>
-          <li><a id="download-history-pdf" href="#">History (pdf)</a></li>
-          <li><a id="download-exam-pdf" href="#">Exam (pdf)</a></li>
-        </ul>
-      </div>
-    </section>
 
     <footer>
       <small>Sources used in final assessment: PubMed, NIH, CDC, WHO, Mayo Clinic, Johns Hopkins Medicine.</small>
