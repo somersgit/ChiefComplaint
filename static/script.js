@@ -104,6 +104,13 @@ async function initCaseSelector() {
 // Initialize session
 initCaseSelector();
 
+
+input.addEventListener('focus', () => {
+  setTimeout(() => {
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 200);
+});
+
 // Buttons
 btnFinishHistory.addEventListener('click', async () => {
   setStage(stages.HX_DISCUSS);
