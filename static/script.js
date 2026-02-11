@@ -163,6 +163,7 @@ if (window.ResizeObserver) {
 input.addEventListener('focus', () => {
   setTimeout(() => {
     syncViewportLayout({ keepBottom: true, smooth: true });
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 200);
 });
 
