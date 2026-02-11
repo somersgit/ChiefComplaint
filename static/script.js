@@ -146,14 +146,12 @@ window.addEventListener('orientationchange', () => syncViewportLayout({ keepBott
 if (window.visualViewport) {
   const syncWithViewport = () => {
     syncViewportLayout({ keepBottom: true });
-    if (document.activeElement === input) {
-      form.scrollIntoView({ block: 'end', inline: 'nearest' });
-    }
   };
 
   window.visualViewport.addEventListener('resize', syncWithViewport);
   window.visualViewport.addEventListener('scroll', syncWithViewport);
 }
+
 
 if (window.ResizeObserver) {
   const composerObserver = new ResizeObserver(() => syncViewportLayout({ keepBottom: true }));
@@ -165,6 +163,13 @@ input.addEventListener('focus', () => {
     syncViewportLayout({ keepBottom: true, smooth: true });
     form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 200);
+});
+
+
+input.addEventListener('blur', () => {
+  document.documentElement.style.setProperty('--keyboard-offset', '0px');
+  document.body.classList.remove('keyboard-open');
+  syncViewportLayout({ keepBottom: true });
 });
 
 // Buttons

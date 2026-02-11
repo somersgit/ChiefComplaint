@@ -64,5 +64,5 @@ footer { color: var(--muted); text-align: center; margin-top: 10px; }
   .buttons .stage-marker { font-size: 13px; padding: 7px 10px; white-space: nowrap; }
   main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   #chat-log { flex: 1; max-height: none; min-height: 35vh; overscroll-behavior: contain; }
-  form { position: sticky; bottom: 0; z-index: 2; background: var(--card); border-top: 1px solid #e3e3e3; padding-bottom: calc(8px + env(safe-area-inset-bottom)); transform: translateY(calc(-1 * var(--keyboard-offset))); }
+  form { position: fixed; left: 0; right: 0; bottom: var(--keyboard-offset); z-index: 20; background: var(--card); border-top: 1px solid #e3e3e3; padding: 8px 12px calc(8px + env(safe-area-inset-bottom)); max-width: 900px; margin: 0 auto; }
 }
