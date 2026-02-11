@@ -21,13 +21,6 @@ const stages = {
 
 let state = { stage: stages.HISTORY, session_id: null, case_id: null };
 
-const roleClassMap = {
-  you: 'bubble-outgoing',
-  patient: 'bubble-incoming',
-  attending: 'bubble-incoming',
-  sys: 'bubble-system'
-};
-
 function isNearBottom(threshold = 56) {
   const remaining = chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight;
   return remaining <= threshold;
@@ -57,9 +50,7 @@ function syncViewportLayout({ keepBottom = false, smooth = false } = {}) {
 
 function addMessage(text, role='sys') {
   const div = document.createElement('div');
-  const bubbleClass = roleClassMap[role] || 'bubble-system';
-  div.className = `msg ${role} ${bubbleClass}`;
-  div.dataset.role = role;
+  div.className = `msg ${role}`;
   div.textContent = text;
   chatLog.appendChild(div);
   syncViewportLayout({ keepBottom: true });
@@ -157,6 +148,7 @@ if (window.ResizeObserver) {
 input.addEventListener('focus', () => {
   setTimeout(() => {
     syncViewportLayout({ keepBottom: true, smooth: true });
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 200);
 });
 
