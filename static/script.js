@@ -21,12 +21,27 @@ const stages = {
 
 let state = { stage: stages.HISTORY, session_id: null, case_id: null };
 
+function scrollChatToBottom() {
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function updateComposerOffset() {
+  const rect = form.getBoundingClientRect();
+  const safeInset = 8;
+  const keyboardOffset = window.visualViewport
+    ? Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop)
+    : 0;
+  const safeOffset = Math.ceil(rect.height + keyboardOffset + safeInset);
+  document.documentElement.style.setProperty('--composer-offset', `${safeOffset}px`);
+}
+
 function addMessage(text, role='sys') {
   const div = document.createElement('div');
   div.className = `msg ${role}`;
   div.textContent = text;
   chatLog.appendChild(div);
-  chatLog.scrollTop = chatLog.scrollHeight;
+  updateComposerOffset();
+  scrollChatToBottom();
 }
 
 function apiGet(path) {
@@ -105,9 +120,36 @@ async function initCaseSelector() {
 initCaseSelector();
 
 
+// Initialize chat viewport spacing for sticky composer
+updateComposerOffset();
+window.addEventListener('resize', () => {
+  updateComposerOffset();
+  scrollChatToBottom();
+});
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    updateComposerOffset();
+    scrollChatToBottom();
+  });
+  window.visualViewport.addEventListener('scroll', () => {
+    updateComposerOffset();
+    scrollChatToBottom();
+  });
+}
+
+if (window.ResizeObserver) {
+  const composerObserver = new ResizeObserver(() => {
+    updateComposerOffset();
+    scrollChatToBottom();
+  });
+  composerObserver.observe(form);
+}
+
 input.addEventListener('focus', () => {
   setTimeout(() => {
     form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    scrollChatToBottom();
   }, 200);
 });
 
@@ -171,6 +213,8 @@ form.addEventListener('submit', async (e) => {
   const resp = await api(endpoint, { message: text });
   const role = resp.role || (state.stage === stages.HISTORY ? 'patient' : 'attending');
   addMessage(resp.reply, role);
+  updateComposerOffset();
+  scrollChatToBottom();
 
   if (endpoint === '/api/attending/final_collect') {
     btnStartTx.disabled = false;
