@@ -148,7 +148,6 @@ if (window.ResizeObserver) {
 
 input.addEventListener('focus', () => {
   setTimeout(() => {
-    updateComposerOffset();
     form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     scrollChatToBottom();
   }, 200);
