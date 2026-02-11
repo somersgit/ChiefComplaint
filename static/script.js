@@ -27,21 +27,14 @@ function isNearBottom(threshold = 56) {
 }
 
 function scrollChatToBottom(behavior = 'auto') {
-  const composerOffset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--composer-offset'), 10) || 0;
-  chatLog.scrollTo({ top: chatLog.scrollHeight + composerOffset, behavior });
+  chatLog.scrollTo({ top: chatLog.scrollHeight, behavior });
 }
 
 function updateComposerOffset() {
   const rect = form.getBoundingClientRect();
   const safeInset = 4;
-  const keyboardOffset = window.visualViewport
-    ? Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop)
-    : 0;
-
-  const safeOffset = Math.ceil(rect.height + keyboardOffset + safeInset);
+  const safeOffset = Math.ceil(rect.height + safeInset);
   document.documentElement.style.setProperty('--composer-offset', `${safeOffset}px`);
-  document.documentElement.style.setProperty('--keyboard-offset', `${Math.ceil(keyboardOffset)}px`);
-  document.body.classList.toggle('keyboard-open', keyboardOffset > 0);
 }
 
 function syncViewportLayout({ keepBottom = false, smooth = false } = {}) {
@@ -144,14 +137,9 @@ window.addEventListener('resize', () => syncViewportLayout({ keepBottom: true })
 window.addEventListener('orientationchange', () => syncViewportLayout({ keepBottom: true }));
 
 if (window.visualViewport) {
-  const syncWithViewport = () => {
-    syncViewportLayout({ keepBottom: true });
-  };
-
-  window.visualViewport.addEventListener('resize', syncWithViewport);
-  window.visualViewport.addEventListener('scroll', syncWithViewport);
+  window.visualViewport.addEventListener('resize', () => syncViewportLayout({ keepBottom: true }));
+  window.visualViewport.addEventListener('scroll', () => syncViewportLayout({ keepBottom: true }));
 }
-
 
 if (window.ResizeObserver) {
   const composerObserver = new ResizeObserver(() => syncViewportLayout({ keepBottom: true }));
@@ -163,13 +151,6 @@ input.addEventListener('focus', () => {
     syncViewportLayout({ keepBottom: true, smooth: true });
     form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 200);
-});
-
-
-input.addEventListener('blur', () => {
-  document.documentElement.style.setProperty('--keyboard-offset', '0px');
-  document.body.classList.remove('keyboard-open');
-  syncViewportLayout({ keepBottom: true });
 });
 
 // Buttons
