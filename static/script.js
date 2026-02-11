@@ -8,17 +8,18 @@ const btnReset = document.getElementById('btn-reset');
 const btnStartTx = document.getElementById('btn-start-tx');
 const btnFinalizeEncounter = document.getElementById('btn-finalize-encounter');
 const stageHistory = document.getElementById('stage-history');
+const caseSelect = document.getElementById('case-select');
 
 const stages = {
   HISTORY: 'HISTORY',
-  HX_DISCUSS: 'HX_DISCUSS', // attending asks for differential after history
-  EXAM: 'EXAM',             // resident asks attending about exam
-  DX_DISCUSS: 'DX_DISCUSS', // attending asks for final dx
-  FINAL: 'FINAL',            // final assessment/feedback
+  HX_DISCUSS: 'HX_DISCUSS',
+  EXAM: 'EXAM',
+  DX_DISCUSS: 'DX_DISCUSS',
+  FINAL: 'FINAL',
   TREATMENT: 'TREATMENT'
 };
 
-let state = { stage: stages.HISTORY, session_id: null };
+let state = { stage: stages.HISTORY, session_id: null, case_id: null };
 
 function addMessage(text, role='sys') {
   const div = document.createElement('div');
@@ -28,14 +29,19 @@ function addMessage(text, role='sys') {
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
+function apiGet(path) {
+  return fetch(path).then((res) => res.json());
+}
+
 async function api(path, payload={}) {
   const res = await fetch(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...payload, session_id: state.session_id })
+    body: JSON.stringify({ ...payload, session_id: state.session_id, case_id: state.case_id })
   });
   const data = await res.json();
   if (data.session_id) state.session_id = data.session_id;
+  if (data.case_id) state.case_id = data.case_id;
   return data;
 }
 
@@ -44,11 +50,11 @@ function setStage(stage) {
 
   const stageButtonMap = {
     [stages.HISTORY]: stageHistory,
-    [stages.HX_DISCUSS]: btnStartExam,
-    [stages.EXAM]: btnFinalize,
-    [stages.DX_DISCUSS]: btnStartTx,
-    [stages.FINAL]: btnFinalizeEncounter,
-    [stages.TREATMENT]: btnFinalizeEncounter
+    [stages.HX_DISCUSS]: btnFinishHistory,
+    [stages.EXAM]: btnStartExam,
+    [stages.DX_DISCUSS]: btnFinalize,
+    [stages.TREATMENT]: btnStartTx,
+    [stages.FINAL]: btnFinalizeEncounter
   };
 
   [stageHistory, btnFinishHistory, btnStartExam, btnFinalize, btnStartTx, btnFinalizeEncounter]
@@ -58,12 +64,45 @@ function setStage(stage) {
   if (activeButton) activeButton.classList.add('active-stage');
 }
 
-// Initialize session
-(async () => {
-  const data = await api('/api/session/start', {});
+function resetWorkflowControls() {
+  btnStartExam.disabled = true;
+  btnFinalize.disabled = true;
+  btnStartTx.disabled = true;
+  btnFinalizeEncounter.disabled = true;
+}
+
+async function startSession(caseId) {
+  state = { stage: stages.HISTORY, session_id: null, case_id: caseId };
+  resetWorkflowControls();
+  chatLog.innerHTML = '';
+
+  const data = await api('/api/session/start', { case_id: caseId });
+  state.case_id = data.case_id;
   setStage(stages.HISTORY);
-  addMessage('Session started. You are speaking with the patient. Ask history questions to gather HPI, PMH, meds, allergies, ROS, and social/sexual/family history. When done, click "Page Attending".', 'sys');
-})();
+  addMessage(`Session started for ${data.case_label}. You are speaking with the patient. Ask history questions to gather HPI, PMH, meds, allergies, ROS, and social/sexual/family history. When done, click "Page Attending".`, 'sys');
+}
+
+async function initCaseSelector() {
+  const payload = await apiGet('/api/cases');
+  caseSelect.innerHTML = '';
+
+  for (const c of payload.cases) {
+    const option = document.createElement('option');
+    option.value = c.id;
+    option.textContent = c.label;
+    if (c.id === payload.default_case_id) option.selected = true;
+    caseSelect.appendChild(option);
+  }
+
+  caseSelect.addEventListener('change', async (e) => {
+    await startSession(e.target.value);
+  });
+
+  await startSession(payload.default_case_id);
+}
+
+// Initialize session
+initCaseSelector();
 
 // Buttons
 btnFinishHistory.addEventListener('click', async () => {
@@ -90,21 +129,20 @@ btnFinalize.addEventListener('click', async () => {
 });
 
 btnReset.addEventListener('click', async () => {
-  state = { stage: stages.HISTORY, session_id: null };
-  chatLog.innerHTML = '';
   await fetch('/api/session/reset', { method: 'POST' });
-  location.reload();
+  await startSession(caseSelect.value);
 });
 
 btnStartTx.addEventListener('click', async () => {
-  const resp = await api('/api/attending/start_treatment', { session_id: state.session_id });
+  const resp = await api('/api/attending/start_treatment', {});
   addMessage(resp.reply, 'attending');
   setStage(stages.TREATMENT);
   btnStartTx.disabled = true;
-  btnFinalizeEncounter.disabled = false; // allow finalize after assessment
+  btnFinalizeEncounter.disabled = false;
 });
+
 btnFinalizeEncounter.addEventListener('click', async () => {
-  const resp = await api('/api/attending/finalize_encounter', { session_id: state.session_id });
+  const resp = await api('/api/attending/finalize_encounter', {});
   addMessage(resp.reply, 'attending');
 });
 
