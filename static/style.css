@@ -12,8 +12,11 @@
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
 .container { max-width: 900px; margin: 0 auto; padding: 24px; }
-header { display: flex; align-items: baseline; gap: 12px; }
+header { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; }
 h1 { margin: 0; font-size: 1.6rem; }
+.development-note { margin: 0; font-size: 0.9rem; color: var(--muted); max-width: 720px; }
+.development-note a { color: var(--accent); font-weight: 600; }
+.development-note a:hover { text-decoration: underline; }
 .tagline { color: var(--muted); margin: 0; }
 #controls { background: var(--card); border-radius: 16px; padding: 12px 16px; margin: 16px 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .stage { font-weight: 600; }
