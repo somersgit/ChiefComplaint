@@ -21,45 +21,44 @@ const stages = {
 
 let state = { stage: stages.HISTORY, session_id: null, case_id: null };
 
-const roleClassMap = {
-  you: 'bubble-outgoing',
-  patient: 'bubble-incoming',
-  attending: 'bubble-incoming',
-  sys: 'bubble-system'
-};
-
 function isNearBottom(threshold = 56) {
   const remaining = chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight;
   return remaining <= threshold;
 }
 
 function scrollChatToBottom(behavior = 'auto') {
-  chatLog.scrollTo({ top: chatLog.scrollHeight, behavior });
+  const composerOffset = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--composer-offset'), 10) || 0;
+  chatLog.scrollTo({ top: chatLog.scrollHeight + composerOffset, behavior });
 }
 
 function updateComposerOffset() {
   const rect = form.getBoundingClientRect();
-  const safeInset = 8;
+  const safeInset = 4;
   const keyboardOffset = window.visualViewport
     ? Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop)
     : 0;
+
   const safeOffset = Math.ceil(rect.height + keyboardOffset + safeInset);
   document.documentElement.style.setProperty('--composer-offset', `${safeOffset}px`);
+  document.documentElement.style.setProperty('--keyboard-offset', `${Math.ceil(keyboardOffset)}px`);
+  document.body.classList.toggle('keyboard-open', keyboardOffset > 0);
 }
 
 function syncViewportLayout({ keepBottom = false, smooth = false } = {}) {
   const shouldStick = keepBottom || isNearBottom();
   updateComposerOffset();
-  if (shouldStick) {
-    scrollChatToBottom(smooth ? 'smooth' : 'auto');
-  }
+  if (!shouldStick) return;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      scrollChatToBottom(smooth ? 'smooth' : 'auto');
+    });
+  });
 }
 
 function addMessage(text, role='sys') {
   const div = document.createElement('div');
-  const bubbleClass = roleClassMap[role] || 'bubble-system';
-  div.className = `msg ${role} ${bubbleClass}`;
-  div.dataset.role = role;
+  div.className = `msg ${role}`;
   div.textContent = text;
   chatLog.appendChild(div);
   syncViewportLayout({ keepBottom: true });
@@ -145,12 +144,17 @@ window.addEventListener('resize', () => syncViewportLayout({ keepBottom: true })
 window.addEventListener('orientationchange', () => syncViewportLayout({ keepBottom: true }));
 
 if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', () => syncViewportLayout({ keepBottom: true }));
-  window.visualViewport.addEventListener('scroll', () => syncViewportLayout({ keepBottom: true }));
+  const syncWithViewport = () => {
+    syncViewportLayout({ keepBottom: true });
+  };
+
+  window.visualViewport.addEventListener('resize', syncWithViewport);
+  window.visualViewport.addEventListener('scroll', syncWithViewport);
 }
 
+
 if (window.ResizeObserver) {
-  const composerObserver = new ResizeObserver(() => syncViewportLayout({ keepBottom: isNearBottom() }));
+  const composerObserver = new ResizeObserver(() => syncViewportLayout({ keepBottom: true }));
   composerObserver.observe(form);
 }
 
@@ -158,6 +162,13 @@ input.addEventListener('focus', () => {
   setTimeout(() => {
     syncViewportLayout({ keepBottom: true, smooth: true });
   }, 200);
+});
+
+
+input.addEventListener('blur', () => {
+  document.documentElement.style.setProperty('--keyboard-offset', '0px');
+  document.body.classList.remove('keyboard-open');
+  syncViewportLayout({ keepBottom: true });
 });
 
 // Buttons
