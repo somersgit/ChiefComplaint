@@ -1,10 +1,22 @@
 {
   "cases": {
     "essential_tremor": {
-      "label": "Essential Tremor",
+      "label": "Case 1",
       "history_pdf": "./data/case_history.pdf",
       "exam_pdf": "./data/case_exam.pdf",
       "assigned_diagnosis": "Essential Tremor"
+    },
+    "AIN": {
+      "label": "Case 2",
+      "history_pdf": "./data/AIN_history.pdf",
+      "exam_pdf": "./data/AIN_exam.pdf",
+      "assigned_diagnosis": "Acute Interstitial Nephritis"
+    },
+    "AS": {
+      "label": "Case 3",
+      "history_pdf": "./data/AS_history.pdf",
+      "exam_pdf": "./data/AS_exam.pdf",
+      "assigned_diagnosis": "Aortic Stenosis"
     }
   }
 }
