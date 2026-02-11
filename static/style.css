@@ -6,6 +6,7 @@
   --accent: #2a8cf5;
   --accent-2: #6ee7b7;
   --danger: #ff6b6b;
+  --composer-offset: 84px;
 }
 
 * { box-sizing: border-box; }
@@ -28,7 +29,7 @@ button.active-stage, .stage-marker.active-stage { background: #86efac; }
 button.secondary { background: transparent; outline: 1px solid var(--muted); color: var(--muted); }
 button[disabled] { opacity: .5; cursor: not-allowed; }
 main { background: var(--card); border-radius: 16px; padding: 12px; }
-#chat-log { display: grid; gap: 10px; padding: 8px; max-height: 60vh; overflow: auto; align-content: start; grid-auto-rows: max-content; }
+#chat-log { display: grid; gap: 10px; padding: 8px; padding-bottom: calc(8px + var(--composer-offset)); max-height: 60vh; overflow: auto; align-content: start; grid-auto-rows: max-content; scroll-padding-bottom: calc(8px + var(--composer-offset)); }
 .msg { padding: 10px 12px; border-radius: 12px; display: inline-block; width: auto; max-width: 80%; white-space: pre-wrap; line-height: 1.4; align-self: start; }
 .you { background: rgba(122,162,255,0.15); border-left: 3px solid var(--accent); justify-self: end; }
 .patient { background: rgba(110,231,183,0.12); border-left: 3px solid var(--accent-2); }
