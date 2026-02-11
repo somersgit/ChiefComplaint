@@ -1,0 +1,10 @@
+{
+  "cases": {
+    "essential_tremor": {
+      "label": "Essential Tremor",
+      "history_pdf": "./data/case_history.pdf",
+      "exam_pdf": "./data/case_exam.pdf",
+      "assigned_diagnosis": "Essential Tremor"
+    }
+  }
+}
