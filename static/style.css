@@ -44,10 +44,22 @@ footer { color: var(--muted); text-align: center; margin-top: 10px; }
   html, body { height: 100%; }
   body { min-height: 100dvh; }
   .container { padding: 12px; min-height: 100dvh; display: flex; flex-direction: column; }
-  #controls { flex-direction: column; align-items: stretch; }
+  #controls { flex-direction: column; align-items: stretch; padding: 10px 12px; gap: 8px; }
   .case-picker { width: 100%; justify-content: space-between; }
-  #case-select { flex: 1; max-width: 220px; }
-  .buttons { width: 100%; }
+  #case-select { flex: 1; max-width: 180px; font-size: 14px; padding: 6px 10px; }
+  .buttons {
+    width: 100%;
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    gap: 6px;
+    padding-bottom: 2px;
+  }
+  .buttons > * { flex: 0 0 auto; }
+  .buttons button,
+  .buttons .stage-marker { font-size: 13px; padding: 7px 10px; white-space: nowrap; }
   main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   #chat-log { flex: 1; max-height: none; min-height: 35vh; }
   form { position: sticky; bottom: 0; background: var(--card); padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
