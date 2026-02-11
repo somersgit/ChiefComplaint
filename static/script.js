@@ -10,6 +10,15 @@ const btnFinalizeEncounter = document.getElementById('btn-finalize-encounter');
 const stageHistory = document.getElementById('stage-history');
 const caseSelect = document.getElementById('case-select');
 
+function updateComposerOffset() {
+  const rect = form.getBoundingClientRect();
+  const keyboardOffset = window.visualViewport
+    ? Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop)
+    : 0;
+  const safeOffset = Math.ceil(rect.height + keyboardOffset + 8);
+  document.documentElement.style.setProperty('--composer-offset', `${safeOffset}px`);
+}
+
 const stages = {
   HISTORY: 'HISTORY',
   HX_DISCUSS: 'HX_DISCUSS',
@@ -26,6 +35,7 @@ function addMessage(text, role='sys') {
   div.className = `msg ${role}`;
   div.textContent = text;
   chatLog.appendChild(div);
+  updateComposerOffset();
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
@@ -104,9 +114,21 @@ async function initCaseSelector() {
 // Initialize session
 initCaseSelector();
 
+updateComposerOffset();
+window.addEventListener('resize', updateComposerOffset);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateComposerOffset);
+  window.visualViewport.addEventListener('scroll', updateComposerOffset);
+}
+if (window.ResizeObserver) {
+  const resizeObserver = new ResizeObserver(updateComposerOffset);
+  resizeObserver.observe(form);
+}
+
 
 input.addEventListener('focus', () => {
   setTimeout(() => {
+    updateComposerOffset();
     form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 200);
 });
