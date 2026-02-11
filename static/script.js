@@ -21,13 +21,6 @@ const stages = {
 
 let state = { stage: stages.HISTORY, session_id: null, case_id: null };
 
-const roleClassMap = {
-  you: 'bubble-outgoing',
-  patient: 'bubble-incoming',
-  attending: 'bubble-incoming',
-  sys: 'bubble-system'
-};
-
 function isNearBottom(threshold = 56) {
   const remaining = chatLog.scrollHeight - chatLog.scrollTop - chatLog.clientHeight;
   return remaining <= threshold;
@@ -39,27 +32,26 @@ function scrollChatToBottom(behavior = 'auto') {
 
 function updateComposerOffset() {
   const rect = form.getBoundingClientRect();
-  const safeInset = 8;
-  const keyboardOffset = window.visualViewport
-    ? Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop)
-    : 0;
-  const safeOffset = Math.ceil(rect.height + keyboardOffset + safeInset);
+  const safeInset = 4;
+  const safeOffset = Math.ceil(rect.height + safeInset);
   document.documentElement.style.setProperty('--composer-offset', `${safeOffset}px`);
 }
 
 function syncViewportLayout({ keepBottom = false, smooth = false } = {}) {
   const shouldStick = keepBottom || isNearBottom();
   updateComposerOffset();
-  if (shouldStick) {
-    scrollChatToBottom(smooth ? 'smooth' : 'auto');
-  }
+  if (!shouldStick) return;
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      scrollChatToBottom(smooth ? 'smooth' : 'auto');
+    });
+  });
 }
 
 function addMessage(text, role='sys') {
   const div = document.createElement('div');
-  const bubbleClass = roleClassMap[role] || 'bubble-system';
-  div.className = `msg ${role} ${bubbleClass}`;
-  div.dataset.role = role;
+  div.className = `msg ${role}`;
   div.textContent = text;
   chatLog.appendChild(div);
   syncViewportLayout({ keepBottom: true });
@@ -150,7 +142,7 @@ if (window.visualViewport) {
 }
 
 if (window.ResizeObserver) {
-  const composerObserver = new ResizeObserver(() => syncViewportLayout({ keepBottom: isNearBottom() }));
+  const composerObserver = new ResizeObserver(() => syncViewportLayout({ keepBottom: true }));
   composerObserver.observe(form);
 }
 
