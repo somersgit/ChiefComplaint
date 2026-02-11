@@ -10,15 +10,6 @@ const btnFinalizeEncounter = document.getElementById('btn-finalize-encounter');
 const stageHistory = document.getElementById('stage-history');
 const caseSelect = document.getElementById('case-select');
 
-function updateComposerOffset() {
-  const rect = form.getBoundingClientRect();
-  const keyboardOffset = window.visualViewport
-    ? Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop)
-    : 0;
-  const safeOffset = Math.ceil(rect.height + keyboardOffset + 8);
-  document.documentElement.style.setProperty('--composer-offset', `${safeOffset}px`);
-}
-
 const stages = {
   HISTORY: 'HISTORY',
   HX_DISCUSS: 'HX_DISCUSS',
@@ -30,13 +21,27 @@ const stages = {
 
 let state = { stage: stages.HISTORY, session_id: null, case_id: null };
 
+function scrollChatToBottom() {
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function updateComposerOffset() {
+  const rect = form.getBoundingClientRect();
+  const safeInset = 8;
+  const keyboardOffset = window.visualViewport
+    ? Math.max(0, window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop)
+    : 0;
+  const safeOffset = Math.ceil(rect.height + keyboardOffset + safeInset);
+  document.documentElement.style.setProperty('--composer-offset', `${safeOffset}px`);
+}
+
 function addMessage(text, role='sys') {
   const div = document.createElement('div');
   div.className = `msg ${role}`;
   div.textContent = text;
   chatLog.appendChild(div);
   updateComposerOffset();
-  chatLog.scrollTop = chatLog.scrollHeight;
+  scrollChatToBottom();
 }
 
 function apiGet(path) {
@@ -114,22 +119,38 @@ async function initCaseSelector() {
 // Initialize session
 initCaseSelector();
 
+
+// Initialize chat viewport spacing for sticky composer
 updateComposerOffset();
-window.addEventListener('resize', updateComposerOffset);
+window.addEventListener('resize', () => {
+  updateComposerOffset();
+  scrollChatToBottom();
+});
+
 if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', updateComposerOffset);
-  window.visualViewport.addEventListener('scroll', updateComposerOffset);
-}
-if (window.ResizeObserver) {
-  const resizeObserver = new ResizeObserver(updateComposerOffset);
-  resizeObserver.observe(form);
+  window.visualViewport.addEventListener('resize', () => {
+    updateComposerOffset();
+    scrollChatToBottom();
+  });
+  window.visualViewport.addEventListener('scroll', () => {
+    updateComposerOffset();
+    scrollChatToBottom();
+  });
 }
 
+if (window.ResizeObserver) {
+  const composerObserver = new ResizeObserver(() => {
+    updateComposerOffset();
+    scrollChatToBottom();
+  });
+  composerObserver.observe(form);
+}
 
 input.addEventListener('focus', () => {
   setTimeout(() => {
     updateComposerOffset();
     form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    scrollChatToBottom();
   }, 200);
 });
 
@@ -193,6 +214,8 @@ form.addEventListener('submit', async (e) => {
   const resp = await api(endpoint, { message: text });
   const role = resp.role || (state.stage === stages.HISTORY ? 'patient' : 'attending');
   addMessage(resp.reply, role);
+  updateComposerOffset();
+  scrollChatToBottom();
 
   if (endpoint === '/api/attending/final_collect') {
     btnStartTx.disabled = false;
