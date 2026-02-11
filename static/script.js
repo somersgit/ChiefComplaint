@@ -32,9 +32,8 @@ function scrollChatToBottom(behavior = 'auto') {
 
 function updateComposerOffset() {
   const rect = form.getBoundingClientRect();
-  const safeInset = 8;
-  const bottomOccupied = Math.max(0, window.innerHeight - rect.top);
-  const safeOffset = Math.ceil(bottomOccupied + safeInset);
+  const safeInset = 4;
+  const safeOffset = Math.ceil(rect.height + safeInset);
   document.documentElement.style.setProperty('--composer-offset', `${safeOffset}px`);
 }
 
